@@ -5,17 +5,103 @@ date: "October 17, 2019"
 output: html_notebook
 ---
 
-```{r}
+This vignette will cover the JSONLite R package and the dataset used as an exemplar, NNDSS – Table I. Infrequently Reported Notifiable Diseases. 
+
+# JSON and JSONLite
+
+The JSONLite R package is one which gives R the ability to parse JSON data. JSON, JavaScript Object Notation, is an open file format that uses attribute-value pairs and array data types. JSON was developed from JavaScript but is language agnostic. JSON was developed in the 2000s and standardized in 2013.  Whitespace is ignored around syntax. JSON does not have syntax for comments. 
+
+## JSON
+
+JSON has 6 basic data types:
+
+* Number: A signed decimal that may use exponential E notation or contain a fractional part, but has no equivalent to NaN. Integers and floating points are not distinguished.
+* String: A sequence of characters, much like in R. Strings are delimited with “” and use backslash escaping.
+* Boolean: true or false.
+* Array: An ordered list of values, of any type.
+* Object: An unordered list of name-value pairs. The name is called a key. Each key should be unique, but it isn’t required that it be. Objects are delimited with curly brackets and the : character separates the key from its value
+* Null: an empty value
+
+JSON is commonly used for data interchange and configuration files. The primary benefit of JSON is that it’s lightweight and flexible. JSON can readily fit a more complex, nested format, compared to a CSV file which requires some additional parsing to support nested lists. It’s lightweight and faster than XML for example. This is because JSON uses fewer words compared to XML and XML parsing tends to be slower since it needs to work through the DOM. The extra words used in XML also leads to larger size requirements. Another boon is that object-oriented programming has become incredibly popular as of late, and JSON is an object oriented data type. JSON is easy to read, even as a human parsing it directly. That being said, one downside is that JSON is less flexible than XML.
+
+## JSONLite
+
+We chose to use jsonlite for this project. There are a couple of other major JSON parsing packages, namely `rjson` and RJSONIO. `rjson` is the simplest of the three, and came about first. I ended up not using that one because `rjson` doesn’t give you any control over simplification. Furthermore, if I wanted to view the file before converting it to a data frame, only `RJSONIO` and `jsonlite` have the ability to prettify it (i.e. add indenting and split up blocks to make the JSON object easier to read). Jsonlite is a fork from `RJSONIO` and uses the same parser, but maps it differently. `jsonlite` is designed primarily for relational datasets, so it works better in converting things directly to a data frame. Even in our chosen JSON file, which has a slightly more nested format, we are able to convert the file to a dataframe in just a couple lines of code. Given that the data is tabular, we don’t need the additional functionality that the flexibility of a JSON file allows for.
+
+The function we are using is fromJSON. The function takes in a JSON string, URL, or file in the txt argument, and offers several additional arguments to define how the JSON file is read in. `simplifyVector` coerces JSON arrays (that only contain simple things like numbers, strings, Booleans, or null values) into vectors, `simplifyDataFrame` coerces JSON arrays with only records into data frames, `simplifyMatrix` coerces JSON arrays containing vectors with equal mode and dimension into a matrix, and `flatten` automatically flattens nested data frames into a single non-nested dataframe. The `flatten` argument is shorthand for performing the flatten function after loading in the JSON data.
+
+```{r libraries, echo=FALSE}
 library(jsonlite)
 library(tidyverse)
-nnds<- fromJSON(txt="Data/NNDS-Table1.json", flatten = TRUE) 
-
-df<- as.data.frame(nnds$data)
-names(df)<- gsub('§', '', nnds$meta$view$columns$name)
-
-head(df)
 ```
 
 ```{r}
+nnds<- fromJSON(txt="Data/NNDS-Table1.json", flatten = TRUE) 
+
+df<- as.data.frame(nnds$data, stringsAsFactors = FALSE)
+names(df)<- gsub('§', '', nnds$meta$view$columns$name)
+```
+
+One note is that I am using the `gsub` function to clean up the column names prior to entering them in the dataframe. Several of the columns have an invalid character. I removed this to make the output a bit nicer.
+
+# NNDSS Data
+
+This dataset, obtained from [HealthData.gov](https://healthdata.gov/dataset/nndss-table-i-infrequently-reported-notifiable-diseases-2) covers provisional cases of selected national notifiable diseases from the National Notifiable Diseases Surveillance System (NNDSS). NNDSS data is reported by the 50 states, NYC, Washington D.C., and the U.S. Territories. They are then collated and published weekly as numbered tables printed on the back of the Morbidity and Mortality Weekly Report (MMWR). Cases 2016 and before are considered finalized, but all cases in 2017 are provisional, meaning that they are still being updated and reviewed by state health departments. This dataset omits part of the complete NNDSS dataset, specifically US Territories data.
+
+This data is collected by state health departments, voluntarily, for the CDC. The data is updated each week (including for previous weeks within a 6 month period). The data we are using is finalized. Notifiable disease reporting is incomplete. The completeness varies depending on the disease and the reporting state or territory. It is influenced by the recognition of a disease, i.e. it may be influenced by the availability of diagnostic facilities; control measures in effect; public awareness of a specific disease (e.g. Zika virus in 2018); and the interests, resources, and priorities of state and local health officials responsible for disease control and surveillance. Furthermore, as various diseases are given more attention and/or study, diagnostic procedures and naming conventions for these diseases have changed. For example, prior to 2015, NNDSS did not receive data about incidence of specific viral hemorrhagic fevers, but in aggregate as “viral hemorrhagic fevers”. In 2015, this was separated out as Ebola and Lassa fever as the West African outbreak of Ebola developed and became of concern. 
+
+
+```{r}
+# A function to clean up read errors in the data. 
+cleandata<- function(df) {
+  
+  # We start by cleaning up the flag values, which are loaded in only for the negative case.
+  flagColList<-grep("flag", names(df), value=TRUE)
+  for (flagCol in flagColList) {
+    df[[flagCol]][df[[flagCol]] == '-']<- FALSE
+    df[[flagCol]][is.na(df[[flagCol]])]<- TRUE
+  }
+  
+  # Remove all columns which contain metadata or duplicate data in general
+  badCols<- c('sid', 'id', 'position', 'created_at', 'created_meta', 'updated_at', 'updated_meta', 'meta')
+  df<- df[, !names(df) %in% badCols]
+  
+  return(df)
+}
+
+df<-cleanFlags(df)
+head(df)
+```
+
+Above we have the NNDSS dataset. Our columns are as follows: 
+* Disease: The disease being tracked. Note that some diseases fall into a group classification, but each variant is listed separately.
+* MMWR year: The year of the results.
+* MMWR week: The week in the year for the results.
+* Current week: The number of incidences in the current week.
+* Current week flag: Indicates if there was an incident that week.
+* Cum 2017: total number of incidences in 2017 as of that week.
+* Cum 2017, flag: whether there have been any incidences in the past year.
+* 5-year weekly average: The weekly average number of incidences over the past 5 years.
+* 5-year weekly average, flag: Indicates if there is such a weekly average.
+* Total cases reported 2016: The total number of cases reported in 2016.
+* Total cases reported 2016, flag: If there were any cases in 2016.
+* Total cases reported 2015: The total number of cases reported in 2015.
+* Total cases reported 2015, flag: If there were any cases in 2015.
+* Total cases reported 2014: The total number of cases reported in 2014.
+* Total cases reported 2014, flag: If there were any cases in 2014.
+* Total cases reported 2013: The total number of cases reported in 2013.
+* Total cases reported 2013, flag: If there were any cases in 2013.
+* Total cases reported 2012: The total number of cases reported in 2012.
+* Total cases reported 2012, flag: If there were any cases in 2012.
+* States reporting cases during current week (No.): a list of states that reported cases and the number associated with them.
+
+Note that we have an additional numeric column and categorical hidden within the last column. We'll now create a new `state` dataframe to collect this more granular view of the data.
+
+```{r}
+state<- df %>% separate_rows(`States reporting cases during current week (No.) `, sep=', ')
+goodCols<- c("Disease", "MMWR year", "MMWR week", "Current week", "Current week, flag", 
+             "States reporting cases during current week (No.) ")
+state<- state[, names(state) %in% goodCols]
+
 ```
 

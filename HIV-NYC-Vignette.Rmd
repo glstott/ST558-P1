@@ -1,0 +1,14 @@
+---
+title: "NYC HIV/AIDS Diagnoses by Neighborhood, Sex, and Race/Ethnicity"
+output: html_notebook
+---
+
+```{r}
+library(XML)
+```
+
+```{r}
+doc <- xmlParse("Data/hiv.xml")
+hiv <- xmlToDataFrame(doc, nodes=getNodeSet(doc, "/response/row/*"))
+```
+
