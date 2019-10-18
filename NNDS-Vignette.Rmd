@@ -1,0 +1,21 @@
+---
+title: "NNDS - Infrequently Reported Notifiable Diseases"
+author: "Garrick L. Stott"
+date: "October 17, 2019"
+output: html_notebook
+---
+
+```{r}
+library(jsonlite)
+library(tidyverse)
+nnds<- fromJSON(txt="Data/NNDS-Table1.json", flatten = TRUE) 
+
+df<- as.data.frame(nnds$data)
+names(df)<- gsub('§', '', nnds$meta$view$columns$name)
+
+head(df)
+```
+
+```{r}
+```
+
