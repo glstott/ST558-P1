@@ -14,9 +14,9 @@ XML, short for Extensible Markup Language, is a markup language which defines a 
 
 ## XML
 
-It is used all over the place, particularly 10-15 years ago. XML is used to store and/or transport data frequently on websites. It acts like a minimal HTML, with no attributes to determine color or size for instance. It's frequently used under the covers. For example, it is the standard for Microsoft Office file formats and Google Docs. Change the extension from .docx to .xml, and you'll be able to edit your word docs as an XML file. 
+It is used all over the place, particularly 10-15 years ago. XML is used to store and/or transport data frequently on websites. It acts like a minimal HTML, with no attributes to determine color or size for instance. It's frequently used under the covers. For example, it is the standard for Microsoft Office file formats and Google Docs. Change the extension from .docx to .xml, and you'll be able to edit your word docs as an XML file. More info on XML files [here](https://www.makeuseof.com/tag/xml-file-case-wondering/)
 
-XML is made up of unicode characters and involves tags and content. The focus was on making XML as flexible as possible to deliver data. As such, there are no predefined tags (compare that to HTML for example). Basically, it is a collection of tags, surrounded by `<` and `>`, and content. 
+XML is made up of unicode characters and involves tags and content. The focus was on making XML as flexible as possible to deliver data. As such, there are no predefined tags (compare that to HTML for example). Basically, it is a collection of tags, surrounded by `<` and `>`, and content. As described by [W3 Schools](https://www.w3schools.com/xml/xml_whatis.asp), the following are the primary components: 
 
 * An attribute consists of a name, value pair within a start tag or an empty element tag. For example: `<img src="turtle.jpg"/>`
 * Content is the stuff between the opening and closing tag.
