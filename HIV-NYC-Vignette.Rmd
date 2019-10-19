@@ -118,7 +118,11 @@ Columns are as follows:
 
 ## EDA
 
-```{r}
+```{r contingencyTables1}
 hiv  %>% filter(!is.na(hiv_diagnoses_num)) %>% select(year, sex, hiv_diagnoses_num)%>% group_by(year, sex) %>% summarize(hiv_diagnoses= sum(hiv_diagnoses_num)) %>% spread(year, hiv_diagnoses) %>% kable()
+```
+
+```{r contingencyTables2}
+hiv  %>% filter(!is.na(hiv_diagnoses_num)) %>% select(race, sex, hiv_diagnoses_num) %>% group_by(race, sex) %>% summarize(hiv_diagnoses= sum(hiv_diagnoses_num)) %>% spread(race, hiv_diagnoses) %>% kable()
 ```
 

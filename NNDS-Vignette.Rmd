@@ -37,6 +37,7 @@ The function we are using is fromJSON. The function takes in a JSON string, URL,
 library(jsonlite)
 library(tidyverse)
 library(reshape2)
+library(knitr)
 ```
 
 ```{r readData}
@@ -74,6 +75,8 @@ cleandata<- function(df, badCols) {
   
   return(df)
 }
+df$`Current week`<- as.numeric(df$`Current week`)
+df$`5-year weekly average`<- as.numeric(df$`5-year weekly average`)
 
 badls<- c('sid', 'id', 'position', 'created_at', 'created_meta', 'updated_at', 'updated_meta', 'meta')
 df<-cleandata(df, badCols=badls)
@@ -121,7 +124,57 @@ state<-cbind(state[, names(state) != 'States reporting cases during current week
 
 ## EDA
 
-```{r ContingencyTables}
+```{r ContingencyTables1}
+state <- state%>% filter(State != '')
 state %>% select(Disease, State, `Number of Cases`) %>% filter(!is.na(`Number of Cases`)) %>% group_by(Disease, State) %>% summarize(Total=sum(`Number of Cases`)) %>% spread(Disease, Total) %>% kable()
 ```
 
+**Figure 1:** Disease-State Contingency Table. Here I'm asking the question, is there an influence on disease prevalence based on location for these rare diseases? There are certainly hints at that through this view, but to better analyze, I will convert these to region instead of state. 
+
+```{r ContingencyTables2}
+# Convert States to regions
+# NOTE: NOT MY CALCULATION. A generous fellow on Stack Overflow wrote this snippet to get Regional info. I added a 
+#   Null value check to help me.
+# Link to source: https://stackoverflow.com/questions/46066974/add-column-to-label-u-s-states-by-their-u-s-census-region
+NE.abrv <- c("CT","ME","MA","NH","RI","VT","NJ","NY","PA", "NYC")
+NE.ref <- c(NE.abrv)
+
+MW.abrv <- c("IN","IL","MI","OH","WI","IA","KS","MN","MO","NE",
+             "ND","SD")
+MW.ref <- c(MW.abrv)
+
+S.abrv <- c("DE","DC","FL","GA","MD","NC","SC","VA","WV","AL",
+            "KY","MS","TN","AR","LA","OK","TX")
+S.ref <- c(S.abrv)
+
+W.abrv <- c("AZ","CO","ID","NM","MT","UT","NV","WY","AK","CA",
+            "HI","OR","WA")
+W.ref <- c(W.abrv)
+
+region.list <- list(
+  Northeast=NE.ref,
+  Midwest=MW.ref,
+  South=S.ref,
+  West=W.ref)
+
+state$Region <- sapply(state$State, 
+                 function(x) names(region.list)[grep(x,region.list)])
+
+state %>% select(Disease, Region, `Number of Cases`) %>% filter(!is.na(`Number of Cases`)) %>% group_by(Disease, Region) %>% summarize(Total=sum(`Number of Cases`)) %>% spread(Disease, Total) %>% kable()
+```
+
+**Figure 2:** Disease-Region Contingency Table. Here we can definitely see the impact of region on disease prevalence. Diseases, such as Zika, native to more tropical regions, are limited primarily to the southeast. Out west and north, disease prevalence is significantly diminished. Other disease don't have a regional preference. E.g. Toxic Shock or Botulism. In the future, it would be good to make a chloropleth chart or the ilk to map out diseases. An ideal version would be an interactive view of disease spread, but that would be significantly further down the road.
+
+
+```{r Plot1}
+df2 <- df %>% select(Disease, `5-year weekly average`) %>% group_by(Disease) %>% summarize(mx=max(`5-year weekly average`)) %>% arrange(desc(mx))
+df2<-head(df2, 12)
+
+df3<- df %>% groupby() %>% filter(Disease %in% df2$Disease)
+
+df3[is.na(df3)]<- 0
+
+ggplot(data=df3, aes(x=`Current week`, y=`5-year weekly average`)) + geom_point(aes(color=factor(Disease))) +  theme(legend.title = element_blank())
+```
+
+**Figure 3: **Here we have a scatterplot of the 5-year weekly average vs the week in 2016, average number of cases for the top 12 diseases. Zika sticks out the most to me. The 5 year weekly average was close to 100, yet we never saw more than 10 cases in a given week. I'd be curious as to what public health initiatives or changes in reporting may have caused such a drastic drop. 
