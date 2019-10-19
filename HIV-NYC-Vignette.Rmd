@@ -41,6 +41,7 @@ I am working with 2 functions from the `XML` package. The first, `xmlParseDoc`, 
 library(XML)
 library(tidyverse)
 library(knitr)
+knitr::knit_meta(class=NULL, clean = TRUE)
 ```
 
 ```{r parse}
@@ -122,7 +123,26 @@ Columns are as follows:
 hiv  %>% filter(!is.na(hiv_diagnoses_num)) %>% select(year, sex, hiv_diagnoses_num)%>% group_by(year, sex) %>% summarize(hiv_diagnoses= sum(hiv_diagnoses_num)) %>% spread(year, hiv_diagnoses) %>% kable()
 ```
 
+**Figure 1:** A contingency table for sex and year with values being for HIV diagnosis totals. It isn't clear what the takeaway is here. It may be a dead end. 
+
 ```{r contingencyTables2}
 hiv  %>% filter(!is.na(hiv_diagnoses_num)) %>% select(race, sex, hiv_diagnoses_num) %>% group_by(race, sex) %>% summarize(hiv_diagnoses= sum(hiv_diagnoses_num)) %>% spread(race, hiv_diagnoses) %>% kable()
 ```
+
+**Figure 2:** A contingency table for race and sex totals. Here, we definitely see a discrepancy. Native Americans are not well represented due to such a small population size in NYC to begin with, but males are the vast majority of cases for all racial groups.
+
+```{r plot1}
+hivS<- hiv %>% filter(!is.na(hiv_diagnoses_num) & !is.na(hiv_aids_concurrent_num) & (race != 'All')) %>% group_by(race) %>% summarize(HIV=sum(hiv_diagnoses_num), AIDS=sum(hiv_aids_concurrent_num))
+
+ggplot(data=hivS, aes(x=HIV, y=AIDS)) + geom_point(aes(color=factor(race))) +  theme(legend.title = element_blank())
+```
+
+**Figure 3:** Here we have a plot of AIDS prevalence vs. HIV prevalence. As one might expect, there is a linear relationship between the two (HIV slowly develops into AIDS if not treated). The colors represent racial demographic. 
+```{r plot2}
+b1<- hiv  %>% filter(!is.na(hiv_diagnoses_num) & sex != 'All') %>% select(race, sex, hiv_diagnoses_num) %>% group_by(race, sex) %>% summarize(hiv_diagnoses= sum(hiv_diagnoses_num))
+
+ggplot(b1, aes(fill=sex, y=hiv_diagnoses, x=race)) + geom_bar(position="stack", stat = 'identity') 
+```
+
+**Figure 4:** The relationship described above in figure 1 is even more stark once you compare them in a stacked bar chart. Men make up the vast majority of new cases across all ethnic groups.
 
