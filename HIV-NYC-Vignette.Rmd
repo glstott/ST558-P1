@@ -1,14 +1,124 @@
 ---
 title: "NYC HIV/AIDS Diagnoses by Neighborhood, Sex, and Race/Ethnicity"
-output: html_notebook
+output:
+  html_document:
+    toc: True
+    df_print: paged
 ---
 
-```{r}
+This vignette will cover the XML file type and XML R package, using NYC HIV/AIDS diagnosis data as an example dataset.
+
+# XML and the XML package
+
+XML, short for Extensible Markup Language, is a markup language which defines a set of rules to encode documents that is both human-readable and machine readable. It is an open standard, published in 1998, designed to structure documents as a response to the development of the internet. 
+
+## XML
+
+It is used all over the place, particularly 10-15 years ago. XML is used to store and/or transport data frequently on websites. It acts like a minimal HTML, with no attributes to determine color or size for instance. It's frequently used under the covers. For example, it is the standard for Microsoft Office file formats and Google Docs. Change the extension from .docx to .xml, and you'll be able to edit your word docs as an XML file. 
+
+XML is made up of unicode characters and involves tags and content. The focus was on making XML as flexible as possible to deliver data. As such, there are no predefined tags (compare that to HTML for example). Basically, it is a collection of tags, surrounded by `<` and `>`, and content. 
+
+* An attribute consists of a name, value pair within a start tag or an empty element tag. For example: `<img src="turtle.jpg"/>`
+* Content is the stuff between the opening and closing tag.
+* An element consists of the opening tag, its attributes, any content, and a closing tag. 
+* A tag, the aforementioned item surrounded by a `<` and `>`, is used to mark the start or end of an element. When used to mark the end of an element, it begins with `</`.
+* A node is a part of the hierarchical structure that makes up an XML document. Node is a generic term that applies to any type of XML object, including elements, attributes, comments, processing instructions, and plain text.
+* An example of a complete element: `<statement>I like turtles</statement>`
+
+## XML package in R
+
+The `XML` package in R is one of two popular packages used for reading in XML. The other one is `xml2`. `XML` is the original R package for parsing XML documents. It is no longer actively maintained, but stable and still very popular. `xml2` is the new package on the block. It is actively maintained and more recently developed in response to the former's weaknesses. I opted for using `XML` in lieu of `xml2` because most of the code I found online was still using it, which is a good sign. Furthermore, my XML file was not particularly complex, requiring less of the additional features found in `xml2`. One interesting nugget is that someone has gone through the hard work of translating `XML` to `xml2` code. Read more [here](https://gist.github.com/nuest/3ed3b0057713eb4f4d75d11bb62f2d66) if you need to make the conversion.
+
+I am working with 2 functions from the `XML` package. The first, `xmlParseDoc`, parses the XML document. We can use the additional options to customize the parser (I did not need these for this part). The arguments are as follows:
+
+* `file`: name of the file, URL, or XML content itself
+* `options`: a list of different specified options which are entered as elements of an integer vector which are bitwise ORed together.
+* `encoding`: used to specify the encoding of the document if not explicitly contained in the document itself.
+* `asText`: used to specify if the file is the XML content or the name of a file/URL (FALSE)
+* `baseURL`: used to resolve relative documents if the XML file links to others.
+
+```{r libraries, include=FALSE}
 library(XML)
+library(tidyverse)
+library(knitr)
 ```
 
+```{r parse}
+doc <- xmlParseDoc("Data/hiv.xml")
+```
+
+The other function which I am using from the `XML` package is `xmlToDataFrame`. This function has the following arguments:
+
+* `doc`: specifies the XML content. This can be a parsed XML or a file location. 
+* `colClasses`: list giving the names of the R types for corresponding variables and used to coerce the column in the dataframe result to this type.
+* `homogenous`: a logical value to let the function know if the nodes contains all the variables or if there are some nodes which only contain a subset. The function will interpret this if it isn't specified.
+* `collectNames`: Determines if one should union all variable names or if you use the names from the node with the greatest number of children.
+* `nodes`: A list of XML nodes to be processed. Useful in this case since we need to go down a couple levels before we get to a simple record list to read into a dataframe.
+* `stringsAsFactors`: should character vectors be converted to factor objects in the resulting dataframe?
+
+Finally, I use the `getNodeSet` function to specify which nodes should be converted to a dataframe. This function extracts the desired nodes before piping it into the conversion. The two arguments which I required were:
+* `doc`: an object of class XMLInternalDocument.
+* `path`: a string giving the XPath expression to evaluate. Here, I'm saying open the response node, open the row node, then select all child nodes.
+
+```{r convert}
+hiv <- xmlToDataFrame(doc, nodes=getNodeSet(doc, "/response/row/*"), stringsAsFactors = FALSE)
+```
+
+
+# NYC HIV dataset
+
+This dataset provides data on new diagnoses of HIV and AIDS in NYC for 2010-2013. Reported cases and case rates are stratified by age group, ethnicity, and neighborhood (as defined by the United Hospital Fund). These numbers are reported to the NYC Department of Health and Mental Hygiene by healthcare providers and laboratories (who are required to report all new infections). The denominator for the population groups is defined by the population estimates used by the NYC DOHMH, which are built upon US Census Bureau intercensal population estimates 2006-2008. Characteristics of the individuals being diagnosed are as provided by the medical records of the patient. Any case count less than 5 or denominator group less than 500 or nonzero counts with a denominator less than 100 are excluded to protect patient confidentiality. 
+
+## Input and Cleaning
+
+```{r cleanAndCompute}
+# Simple data cleaning function to automatically figure out which fields need replacing of the * value and calc pop estimate
+cleanData<- function(df) {
+  # Replace * with NA for future analysis
+  flagColList<-grep("num", names(df), value=TRUE)
+  for (flagCol in flagColList) {
+    df[[flagCol]][df[[flagCol]] == '*']<- NaN
+    df[[flagCol]][df[[flagCol]] == 'NA']<- NaN
+    df[[flagCol]][is.na(df[[flagCol]])]<- NaN
+    df[[flagCol]] <- as.numeric(df[[flagCol]])
+  }
+  
+  return(df)
+}
+
+# A function to aid in the later mutate function which calculates an estimated population size when possible to do so
+estimator<- function(hivn, hivper100) {
+  if ((!is.na(hivper100) & ! is.na(hivn)) & ((hivper100 > 0) & (hivn > 0))) {
+    total <- hivn/ (hivper100 / 100000)
+  } else {
+    total <- NaN
+  }
+  return(total)
+}
+
+hiv<- cleanData(hiv) %>% rowwise() %>% mutate(estimated_population = estimator(hivn=hiv_diagnoses_num, hivper100=hiv_diagnoses_num_per_100k)) %>% as.data.frame()
+
+head(hiv)
+```
+
+
+Columns are as follows:
+
+* Year: Calendar year of the report
+* Neighborhood (UHF): The United Hospital Fund neighborhood of residence
+* Sex: The sex of the patients
+* Race: The race of the patients
+* hiv_diagnoses_num: The number of reported HIV diagnoses for the specified year
+* hiv_diagnoses_num_per_100k: The number of AIDS diagnoses for the respective year per 100,000 people
+* hiv_aids_concurrent_num: the number of diagnosed HIV cases with a concurrent AIDS diagnosis for the given year
+* concurrent_hiv_aids_among_all: proportion of concurrent HIV/AIDS diagnosis compared to all HIV diagnoses for the year
+* aids_diagnoses_num: number of reported cases of AIDS for the year
+* aids_diagnoses_num_per_100k: number of AIDS cases per 100,000 people.
+* estimated_population: A calculated field, which estimates the population using the provided proportion and number of diagnoses.
+
+## EDA
+
 ```{r}
-doc <- xmlParse("Data/hiv.xml")
-hiv <- xmlToDataFrame(doc, nodes=getNodeSet(doc, "/response/row/*"))
+hiv  %>% filter(!is.na(hiv_diagnoses_num)) %>% select(year, sex, hiv_diagnoses_num)%>% group_by(year, sex) %>% summarize(hiv_diagnoses= sum(hiv_diagnoses_num)) %>% spread(year, hiv_diagnoses) %>% kable()
 ```
 

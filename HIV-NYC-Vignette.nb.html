@@ -1749,24 +1749,129 @@ summary {
 
 
 <!-- rnb-text-begin -->
+<p>This vignette will cover the XML file type and XML R package, using NYC HIV/AIDS diagnosis data as an example dataset.</p>
+<div id="xml-and-the-xml-package" class="section level1">
+<h1>XML and the XML package</h1>
+<p>XML, short for Extensible Markup Language, is a markup language which defines a set of rules to encode documents that is both human-readable and machine readable. It is an open standard, published in 1998, designed to structure documents as a response to the development of the internet.</p>
+<div id="xml" class="section level2">
+<h2>XML</h2>
+<p>It is used all over the place, particularly 10-15 years ago. XML is used to store and/or transport data frequently on websites. It acts like a minimal HTML, with no attributes to determine color or size for instance. It’s frequently used under the covers. For example, it is the standard for Microsoft Office file formats and Google Docs. Change the extension from .docx to .xml, and you’ll be able to edit your word docs as an XML file.</p>
+<p>XML is made up of unicode characters and involves tags and content. The focus was on making XML as flexible as possible to deliver data. As such, there are no predefined tags (compare that to HTML for example). Basically, it is a collection of tags, surrounded by <code>&lt;</code> and <code>&gt;</code>, and content.</p>
+<ul>
+<li>An attribute consists of a name, value pair within a start tag or an empty element tag. For example: <code>&lt;img src=&quot;turtle.jpg&quot;/&gt;</code></li>
+<li>Content is the stuff between the opening and closing tag.</li>
+<li>An element consists of the opening tag, its attributes, any content, and a closing tag.</li>
+<li>A tag, the aforementioned item surrounded by a <code>&lt;</code> and <code>&gt;</code>, is used to mark the start or end of an element. When used to mark the end of an element, it begins with <code>&lt;/</code>.</li>
+<li>A node is a part of the hierarchical structure that makes up an XML document. Node is a generic term that applies to any type of XML object, including elements, attributes, comments, processing instructions, and plain text.</li>
+<li>An example of a complete element: <code>&lt;statement&gt;I like turtles&lt;/statement&gt;</code></li>
+</ul>
+</div>
+<div id="xml-package-in-r" class="section level2">
+<h2>XML package in R</h2>
+<p>The <code>XML</code> package in R is one of two popular packages used for reading in XML. The other one is <code>xml2</code>. <code>XML</code> is the original R package for parsing XML documents. It is no longer actively maintained, but stable and still very popular. <code>xml2</code> is the new package on the block. It is actively maintained and more recently developed in response to the former’s weaknesses. I opted for using <code>XML</code> in lieu of <code>xml2</code> because most of the code I found online was still using it, which is a good sign. Furthermore, my XML file was not particularly complex, requiring less of the additional features found in <code>xml2</code>. One interesting nugget is that someone has gone through the hard work of translating <code>XML</code> to <code>xml2</code> code. Read more <a href="https://gist.github.com/nuest/3ed3b0057713eb4f4d75d11bb62f2d66">here</a> if you need to make the conversion.</p>
+<p>I am working with 2 functions from the <code>XML</code> package. The first, <code>xmlParseDoc</code>, parses the XML document. We can use the additional options to customize the parser (I did not need these for this part). The arguments are as follows:</p>
+<ul>
+<li><code>file</code>: name of the file, URL, or XML content itself</li>
+<li><code>options</code>: a list of different specified options which are entered as elements of an integer vector which are bitwise ORed together.</li>
+<li><code>encoding</code>: used to specify the encoding of the document if not explicitly contained in the document itself.</li>
+<li><code>asText</code>: used to specify if the file is the XML content or the name of a file/URL (FALSE)</li>
+<li><code>baseURL</code>: used to resolve relative documents if the XML file links to others.</li>
+</ul>
 <!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShYTUwpXG5gYGAifQ== -->
-<pre class="r"><code>library(XML)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZG9jIDwtIHhtbFBhcnNlKFwiRGF0YS9oaXYueG1sXCIpXG5oaXYgPC0geG1sVG9EYXRhRnJhbWUoZG9jLCBub2Rlcz1nZXROb2RlU2V0KGRvYywgXCIvcmVzcG9uc2Uvcm93LypcIikpXG5gYGAifQ== -->
-<pre class="r"><code>doc &lt;- xmlParse(&quot;Data/hiv.xml&quot;)
-hiv &lt;- xmlToDataFrame(doc, nodes=getNodeSet(doc, &quot;/response/row/*&quot;))</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZG9jIDwtIHhtbFBhcnNlRG9jKFwiRGF0YS9oaXYueG1sXCIpXG5gYGAifQ== -->
+<pre class="r"><code>doc &lt;- xmlParseDoc(&quot;Data/hiv.xml&quot;)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>The other function which I am using from the <code>XML</code> package is <code>xmlToDataFrame</code>. This function has the following arguments:</p>
+<ul>
+<li><code>doc</code>: specifies the XML content. This can be a parsed XML or a file location.</li>
+<li><code>colClasses</code>: list giving the names of the R types for corresponding variables and used to coerce the column in the dataframe result to this type.</li>
+<li><code>homogenous</code>: a logical value to let the function know if the nodes contains all the variables or if there are some nodes which only contain a subset. The function will interpret this if it isn’t specified.</li>
+<li><code>collectNames</code>: Determines if one should union all variable names or if you use the names from the node with the greatest number of children.</li>
+<li><code>nodes</code>: A list of XML nodes to be processed. Useful in this case since we need to go down a couple levels before we get to a simple record list to read into a dataframe.</li>
+<li><code>stringsAsFactors</code>: should character vectors be converted to factor objects in the resulting dataframe?</li>
+</ul>
+<p>Finally, I use the <code>getNodeSet</code> function to specify which nodes should be converted to a dataframe. This function extracts the desired nodes before piping it into the conversion. The two arguments which I required were: * <code>doc</code>: an object of class XMLInternalDocument. * <code>path</code>: a string giving the XPath expression to evaluate. Here, I’m saying open the response node, open the row node, then select all child nodes.</p>
 <!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaGl2IDwtIHhtbFRvRGF0YUZyYW1lKGRvYywgbm9kZXM9Z2V0Tm9kZVNldChkb2MsIFwiL3Jlc3BvbnNlL3Jvdy8qXCIpLCBzdHJpbmdzQXNGYWN0b3JzID0gRkFMU0UpXG5gYGAifQ== -->
+<pre class="r"><code>hiv &lt;- xmlToDataFrame(doc, nodes=getNodeSet(doc, &quot;/response/row/*&quot;), stringsAsFactors = FALSE)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+</div>
+<div id="nyc-hiv-dataset" class="section level1">
+<h1>NYC HIV dataset</h1>
+<p>This dataset provides data on new diagnoses of HIV and AIDS in NYC for 2010-2013. Reported cases and case rates are stratified by age group, ethnicity, and neighborhood (as defined by the United Hospital Fund). These numbers are reported to the NYC Department of Health and Mental Hygiene by healthcare providers and laboratories (who are required to report all new infections). The denominator for the population groups is defined by the population estimates used by the NYC DOHMH, which are built upon US Census Bureau intercensal population estimates 2006-2008. Characteristics of the individuals being diagnosed are as provided by the medical records of the patient. Any case count less than 5 or denominator group less than 500 or nonzero counts with a denominator less than 100 are excluded to protect patient confidentiality.</p>
+<div id="input-and-cleaning" class="section level2">
+<h2>Input and Cleaning</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBTaW1wbGUgZGF0YSBjbGVhbmluZyBmdW5jdGlvbiB0byBhdXRvbWF0aWNhbGx5IGZpZ3VyZSBvdXQgd2hpY2ggZmllbGRzIG5lZWQgcmVwbGFjaW5nIG9mIHRoZSAqIHZhbHVlIGFuZCBjYWxjIHBvcCBlc3RpbWF0ZVxuY2xlYW5EYXRhPC0gZnVuY3Rpb24oZGYpIHtcbiAgIyBSZXBsYWNlICogd2l0aCBOQSBmb3IgZnV0dXJlIGFuYWx5c2lzXG4gIGZsYWdDb2xMaXN0PC1ncmVwKFwibnVtXCIsIG5hbWVzKGRmKSwgdmFsdWU9VFJVRSlcbiAgZm9yIChmbGFnQ29sIGluIGZsYWdDb2xMaXN0KSB7XG4gICAgZGZbW2ZsYWdDb2xdXVtkZltbZmxhZ0NvbF1dID09ICcqJ108LSBOYU5cbiAgICBkZltbZmxhZ0NvbF1dW2RmW1tmbGFnQ29sXV0gPT0gJ05BJ108LSBOYU5cbiAgICBkZltbZmxhZ0NvbF1dW2lzLm5hKGRmW1tmbGFnQ29sXV0pXTwtIE5hTlxuICAgIGRmW1tmbGFnQ29sXV0gPC0gYXMubnVtZXJpYyhkZltbZmxhZ0NvbF1dKVxuICB9XG4gIFxuICByZXR1cm4oZGYpXG59XG5cbiMgQSBmdW5jdGlvbiB0byBhaWQgaW4gdGhlIGxhdGVyIG11dGF0ZSBmdW5jdGlvbiB3aGljaCBjYWxjdWxhdGVzIGFuIGVzdGltYXRlZCBwb3B1bGF0aW9uIHNpemUgd2hlbiBwb3NzaWJsZSB0byBkbyBzb1xuZXN0aW1hdG9yPC0gZnVuY3Rpb24oaGl2biwgaGl2cGVyMTAwKSB7XG4gIGlmICgoIWlzLm5hKGhpdnBlcjEwMCkgJiAhIGlzLm5hKGhpdm4pKSAmICgoaGl2cGVyMTAwID4gMCkgJiAoaGl2biA+IDApKSkge1xuICAgIHRvdGFsIDwtIGhpdm4vIChoaXZwZXIxMDAgLyAxMDAwMDApXG4gIH0gZWxzZSB7XG4gICAgdG90YWwgPC0gTmFOXG4gIH1cbiAgcmV0dXJuKHRvdGFsKVxufVxuXG5oaXY8LSBjbGVhbkRhdGEoaGl2KSAlPiUgcm93d2lzZSgpICU+JSBtdXRhdGUoZXN0aW1hdGVkX3BvcHVsYXRpb24gPSBlc3RpbWF0b3IoaGl2bj1oaXZfZGlhZ25vc2VzX251bSwgaGl2cGVyMTAwPWhpdl9kaWFnbm9zZXNfbnVtX3Blcl8xMDBrKSlcblxuaGVhZChoaXYpXG5gYGAifQ== -->
+<pre class="r"><code># Simple data cleaning function to automatically figure out which fields need replacing of the * value and calc pop estimate
+cleanData&lt;- function(df) {
+  # Replace * with NA for future analysis
+  flagColList&lt;-grep(&quot;num&quot;, names(df), value=TRUE)
+  for (flagCol in flagColList) {
+    df[[flagCol]][df[[flagCol]] == &#39;*&#39;]&lt;- NaN
+    df[[flagCol]][df[[flagCol]] == &#39;NA&#39;]&lt;- NaN
+    df[[flagCol]][is.na(df[[flagCol]])]&lt;- NaN
+    df[[flagCol]] &lt;- as.numeric(df[[flagCol]])
+  }
+  
+  return(df)
+}
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIk5ZQyBISVYvQUlEUyBEaWFnbm9zZXMgYnkgTmVpZ2hib3Job29kLCBTZXgsIGFuZCBSYWNlL0V0aG5pY2l0eSINCm91dHB1dDogaHRtbF9ub3RlYm9vaw0KLS0tDQoNCmBgYHtyfQ0KbGlicmFyeShYTUwpDQpgYGANCg0KYGBge3J9DQpkb2MgPC0geG1sUGFyc2UoIkRhdGEvaGl2LnhtbCIpDQpoaXYgPC0geG1sVG9EYXRhRnJhbWUoZG9jLCBub2Rlcz1nZXROb2RlU2V0KGRvYywgIi9yZXNwb25zZS9yb3cvKiIpKQ0KYGBgDQoNCg==</div>
+# A function to aid in the later mutate function which calculates an estimated population size when possible to do so
+estimator&lt;- function(hivn, hivper100) {
+  if ((!is.na(hivper100) &amp; ! is.na(hivn)) &amp; ((hivper100 &gt; 0) &amp; (hivn &gt; 0))) {
+    total &lt;- hivn/ (hivper100 / 100000)
+  } else {
+    total &lt;- NaN
+  }
+  return(total)
+}
+
+hiv&lt;- cleanData(hiv) %&gt;% rowwise() %&gt;% mutate(estimated_population = estimator(hivn=hiv_diagnoses_num, hivper100=hiv_diagnoses_num_per_100k))
+
+head(hiv)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-frame-begin eyJtZXRhZGF0YSI6eyJjbGFzc2VzIjpbInJvd3dpc2VfZGYiLCJ0YmxfZGYiLCJ0YmwiLCJkYXRhLmZyYW1lIl0sIm5jb2wiOjExLCJucm93Ijo2fSwicmRmIjoiSDRzSUFBQUFBQUFBQnFWVTNVNFRRUlRlL2dLdHBRaEVqRVN6TjNwRGJOb1N3Y3RGakpob1NWTWc0Y1pzVG5lSDNRbXpNNXZaS1lVcnZmUk5mQUQxeWxmUUp6QjY0UU5vOU1wNFFaM2Q3cFF5aFVqaUpPMzUrYjZkTTkvc09kdDV2TDlhMmk4WmhwRXpjc1dNa1N0STF5aHV0aHZOQjAzRHlHZGxsREh5eGt4c2p5VnJRVHBsK1p1TGFTbVFiOVlicS8vbG45K3YwbVpjbUIzcytBR2picHBjZW9hcEYzVTVkajFrM3Bmb0VlSXVFSlRDTjNZRWhBUUpSaVc0STJybUZtTGNVK2p5Rm9jQWNlZkViQU0vbEl4V2ozTTRNWjlpUWxMS1loc1JId0tKN2ZxY2VaRzVqWnpERktzK1ozM0V6UlpRSDRRQXFwMjMrQVFGWnllNWVwUnY2Zjc1ZmF2YklLUk1jME1lSFR1eTdEQTl0VWNQS2V1ck1MY3gwakRtRmg0UkdKMi8zT29SZ1RrNEdJZ01aNU1hMnJJV1V6dWQyb2M2NDVMbjdueU0xeWRyN2lCWjFsNHhzZjk4YmxxTDV5YnFqZDlGcHE0NzJiV0pWTDZ4VmxzL1MxNVdXYXRrclY5UjZjMmgwbEc4ZSs5Q3BTOS9Ed05sclIvdnZpMzhldnZhK3ZsbDVmMzhoNDcxK2V1THUrSDNOd3JYeHF4QVphdEdxZnl5VW5hQ2dLZitOWXF3NTNjWjl4bFQwNUdMMExHaXl2ZXN1dXE2ajQ5c0Y0TkhXWVFpbS9hQ0ZMZzFBZGdoNG5halhsYzlzeFF6QUx1UjdURHF5SEZCVkl4dGNIc3NPMktDbkZmUGhsRVR6aWZaaStvdlR5TDZBUlpSSkhBQUFybDJ5TUlla2JQQXFINVhEb0ZJM1pWS2xsd1FVRHVJSjE2anozRFdyNm5ycmNROTlFcitEUWFEUDlLY2F1UXBGc1lWSlRVYmYvUUtXcFVNMXhKVmh5Q2dHOVRkWkVIWUUvRXdseEo0dUNxcFh4enp5OE9TMlVHNlZVRjlKaEQxTUZVdnNVQ2dpOVNWemtvSmlZSmF5REVWU3JMTVJqWEJCQ2hleVdGRVpSSnR4dWxmNlBQVStld0ZBQUE9In0= -->
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["year"],"name":[1],"type":["chr"],"align":["left"]},{"label":["neighborhood"],"name":[2],"type":["chr"],"align":["left"]},{"label":["sex"],"name":[3],"type":["chr"],"align":["left"]},{"label":["race"],"name":[4],"type":["chr"],"align":["left"]},{"label":["hiv_diagnoses_num"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["hiv_diagnoses_num_per_100k"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["hiv_aids_concurrent_num"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["concurrent_hiv_aids_among_all"],"name":[8],"type":["chr"],"align":["left"]},{"label":["aids_diagnoses_num"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["aids_diagnoses_num_per_100k"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["estimated_population"],"name":[11],"type":["dbl"],"align":["right"]}],"data":[{"1":"2013","2":"Port Richmond","3":"Female","4":"Native American","5":"0","6":"0.0","7":"0","8":"0","9":"0","10":"0.0","11":"NaN"},{"1":"2013","2":"Kingsbridge - Riverdale","3":"Female","4":"Unknown","5":"0","6":"0.0","7":"0","8":"0","9":"0","10":"0.0","11":"NaN"},{"1":"2013","2":"Stapleton - St. George","3":"Female","4":"All","5":"5","6":"7.7","7":"3","8":"60","9":"4","10":"6.2","11":"64935.06"},{"1":"2013","2":"Gramercy Park - Murray Hill","3":"Female","4":"All","5":"3","6":"4.1","7":"0","8":"0","9":"0","10":"0.0","11":"73170.73"},{"1":"2013","2":"Pelham - Throgs Neck","3":"Male","4":"Black","5":"24","6":"84.1","7":"4","8":"16.7","9":"23","10":"80.6","11":"28537.46"},{"1":"2013","2":"Lower Manhattan","3":"Male","4":"Multiracial","5":"0","6":"0.0","7":"0","8":"0","9":"0","10":"0.0","11":"NaN"}],"options":{"columns":{"min":{},"max":[10],"total":[11]},"rows":{"min":[10],"max":[10],"total":[6]},"pages":{}}}
+  </script>
+</div>
+<!-- rnb-frame-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Columns are as follows:</p>
+<ul>
+<li>Year: Calendar year of the report</li>
+<li>Neighborhood (UHF): The United Hospital Fund neighborhood of residence</li>
+<li>Sex: The sex of the patients</li>
+<li>Race: The race of the patients</li>
+<li>hiv_diagnoses_num: The number of reported HIV diagnoses for the specified year</li>
+<li>hiv_diagnoses_num_per_100k: The number of AIDS diagnoses for the respective year per 100,000 people</li>
+<li>hiv_aids_concurrent_num: the number of diagnosed HIV cases with a concurrent AIDS diagnosis for the given year</li>
+<li>concurrent_hiv_aids_among_all: proportion of concurrent HIV/AIDS diagnosis compared to all HIV diagnoses for the year</li>
+<li>aids_diagnoses_num: number of reported cases of AIDS for the year</li>
+<li>aids_diagnoses_num_per_100k: number of AIDS cases per 100,000 people.</li>
+<li>estimated_population: A calculated field, which estimates the population using the provided proportion and number of diagnoses.</li>
+</ul>
+</div>
+<div id="eda" class="section level2">
+<h2>EDA</h2>
+<!-- rnb-text-end -->
+</div>
+</div>
+
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIk5ZQyBISVYvQUlEUyBEaWFnbm9zZXMgYnkgTmVpZ2hib3Job29kLCBTZXgsIGFuZCBSYWNlL0V0aG5pY2l0eSINCm91dHB1dDoNCiAgaHRtbF9kb2N1bWVudDoNCiAgICB0b2M6IFRydWUNCiAgICBkZl9wcmludDogcGFnZWQNCi0tLQ0KDQpUaGlzIHZpZ25ldHRlIHdpbGwgY292ZXIgdGhlIFhNTCBmaWxlIHR5cGUgYW5kIFhNTCBSIHBhY2thZ2UsIHVzaW5nIE5ZQyBISVYvQUlEUyBkaWFnbm9zaXMgZGF0YSBhcyBhbiBleGFtcGxlIGRhdGFzZXQuDQoNCiMgWE1MIGFuZCB0aGUgWE1MIHBhY2thZ2UNCg0KWE1MLCBzaG9ydCBmb3IgRXh0ZW5zaWJsZSBNYXJrdXAgTGFuZ3VhZ2UsIGlzIGEgbWFya3VwIGxhbmd1YWdlIHdoaWNoIGRlZmluZXMgYSBzZXQgb2YgcnVsZXMgdG8gZW5jb2RlIGRvY3VtZW50cyB0aGF0IGlzIGJvdGggaHVtYW4tcmVhZGFibGUgYW5kIG1hY2hpbmUgcmVhZGFibGUuIEl0IGlzIGFuIG9wZW4gc3RhbmRhcmQsIHB1Ymxpc2hlZCBpbiAxOTk4LCBkZXNpZ25lZCB0byBzdHJ1Y3R1cmUgZG9jdW1lbnRzIGFzIGEgcmVzcG9uc2UgdG8gdGhlIGRldmVsb3BtZW50IG9mIHRoZSBpbnRlcm5ldC4gDQoNCiMjIFhNTA0KDQpJdCBpcyB1c2VkIGFsbCBvdmVyIHRoZSBwbGFjZSwgcGFydGljdWxhcmx5IDEwLTE1IHllYXJzIGFnby4gWE1MIGlzIHVzZWQgdG8gc3RvcmUgYW5kL29yIHRyYW5zcG9ydCBkYXRhIGZyZXF1ZW50bHkgb24gd2Vic2l0ZXMuIEl0IGFjdHMgbGlrZSBhIG1pbmltYWwgSFRNTCwgd2l0aCBubyBhdHRyaWJ1dGVzIHRvIGRldGVybWluZSBjb2xvciBvciBzaXplIGZvciBpbnN0YW5jZS4gSXQncyBmcmVxdWVudGx5IHVzZWQgdW5kZXIgdGhlIGNvdmVycy4gRm9yIGV4YW1wbGUsIGl0IGlzIHRoZSBzdGFuZGFyZCBmb3IgTWljcm9zb2Z0IE9mZmljZSBmaWxlIGZvcm1hdHMgYW5kIEdvb2dsZSBEb2NzLiBDaGFuZ2UgdGhlIGV4dGVuc2lvbiBmcm9tIC5kb2N4IHRvIC54bWwsIGFuZCB5b3UnbGwgYmUgYWJsZSB0byBlZGl0IHlvdXIgd29yZCBkb2NzIGFzIGFuIFhNTCBmaWxlLiANCg0KWE1MIGlzIG1hZGUgdXAgb2YgdW5pY29kZSBjaGFyYWN0ZXJzIGFuZCBpbnZvbHZlcyB0YWdzIGFuZCBjb250ZW50LiBUaGUgZm9jdXMgd2FzIG9uIG1ha2luZyBYTUwgYXMgZmxleGlibGUgYXMgcG9zc2libGUgdG8gZGVsaXZlciBkYXRhLiBBcyBzdWNoLCB0aGVyZSBhcmUgbm8gcHJlZGVmaW5lZCB0YWdzIChjb21wYXJlIHRoYXQgdG8gSFRNTCBmb3IgZXhhbXBsZSkuIEJhc2ljYWxseSwgaXQgaXMgYSBjb2xsZWN0aW9uIG9mIHRhZ3MsIHN1cnJvdW5kZWQgYnkgYDxgIGFuZCBgPmAsIGFuZCBjb250ZW50LiANCg0KKiBBbiBhdHRyaWJ1dGUgY29uc2lzdHMgb2YgYSBuYW1lLCB2YWx1ZSBwYWlyIHdpdGhpbiBhIHN0YXJ0IHRhZyBvciBhbiBlbXB0eSBlbGVtZW50IHRhZy4gRm9yIGV4YW1wbGU6IGA8aW1nIHNyYz0idHVydGxlLmpwZyIvPmANCiogQ29udGVudCBpcyB0aGUgc3R1ZmYgYmV0d2VlbiB0aGUgb3BlbmluZyBhbmQgY2xvc2luZyB0YWcuDQoqIEFuIGVsZW1lbnQgY29uc2lzdHMgb2YgdGhlIG9wZW5pbmcgdGFnLCBpdHMgYXR0cmlidXRlcywgYW55IGNvbnRlbnQsIGFuZCBhIGNsb3NpbmcgdGFnLiANCiogQSB0YWcsIHRoZSBhZm9yZW1lbnRpb25lZCBpdGVtIHN1cnJvdW5kZWQgYnkgYSBgPGAgYW5kIGA+YCwgaXMgdXNlZCB0byBtYXJrIHRoZSBzdGFydCBvciBlbmQgb2YgYW4gZWxlbWVudC4gV2hlbiB1c2VkIHRvIG1hcmsgdGhlIGVuZCBvZiBhbiBlbGVtZW50LCBpdCBiZWdpbnMgd2l0aCBgPC9gLg0KKiBBIG5vZGUgaXMgYSBwYXJ0IG9mIHRoZSBoaWVyYXJjaGljYWwgc3RydWN0dXJlIHRoYXQgbWFrZXMgdXAgYW4gWE1MIGRvY3VtZW50LiBOb2RlIGlzIGEgZ2VuZXJpYyB0ZXJtIHRoYXQgYXBwbGllcyB0byBhbnkgdHlwZSBvZiBYTUwgb2JqZWN0LCBpbmNsdWRpbmcgZWxlbWVudHMsIGF0dHJpYnV0ZXMsIGNvbW1lbnRzLCBwcm9jZXNzaW5nIGluc3RydWN0aW9ucywgYW5kIHBsYWluIHRleHQuDQoqIEFuIGV4YW1wbGUgb2YgYSBjb21wbGV0ZSBlbGVtZW50OiBgPHN0YXRlbWVudD5JIGxpa2UgdHVydGxlczwvc3RhdGVtZW50PmANCg0KIyMgWE1MIHBhY2thZ2UgaW4gUg0KDQpUaGUgYFhNTGAgcGFja2FnZSBpbiBSIGlzIG9uZSBvZiB0d28gcG9wdWxhciBwYWNrYWdlcyB1c2VkIGZvciByZWFkaW5nIGluIFhNTC4gVGhlIG90aGVyIG9uZSBpcyBgeG1sMmAuIGBYTUxgIGlzIHRoZSBvcmlnaW5hbCBSIHBhY2thZ2UgZm9yIHBhcnNpbmcgWE1MIGRvY3VtZW50cy4gSXQgaXMgbm8gbG9uZ2VyIGFjdGl2ZWx5IG1haW50YWluZWQsIGJ1dCBzdGFibGUgYW5kIHN0aWxsIHZlcnkgcG9wdWxhci4gYHhtbDJgIGlzIHRoZSBuZXcgcGFja2FnZSBvbiB0aGUgYmxvY2suIEl0IGlzIGFjdGl2ZWx5IG1haW50YWluZWQgYW5kIG1vcmUgcmVjZW50bHkgZGV2ZWxvcGVkIGluIHJlc3BvbnNlIHRvIHRoZSBmb3JtZXIncyB3ZWFrbmVzc2VzLiBJIG9wdGVkIGZvciB1c2luZyBgWE1MYCBpbiBsaWV1IG9mIGB4bWwyYCBiZWNhdXNlIG1vc3Qgb2YgdGhlIGNvZGUgSSBmb3VuZCBvbmxpbmUgd2FzIHN0aWxsIHVzaW5nIGl0LCB3aGljaCBpcyBhIGdvb2Qgc2lnbi4gRnVydGhlcm1vcmUsIG15IFhNTCBmaWxlIHdhcyBub3QgcGFydGljdWxhcmx5IGNvbXBsZXgsIHJlcXVpcmluZyBsZXNzIG9mIHRoZSBhZGRpdGlvbmFsIGZlYXR1cmVzIGZvdW5kIGluIGB4bWwyYC4gT25lIGludGVyZXN0aW5nIG51Z2dldCBpcyB0aGF0IHNvbWVvbmUgaGFzIGdvbmUgdGhyb3VnaCB0aGUgaGFyZCB3b3JrIG9mIHRyYW5zbGF0aW5nIGBYTUxgIHRvIGB4bWwyYCBjb2RlLiBSZWFkIG1vcmUgW2hlcmVdKGh0dHBzOi8vZ2lzdC5naXRodWIuY29tL251ZXN0LzNlZDNiMDA1NzcxM2ViNGY0ZDc1ZDExYmI2MmYyZDY2KSBpZiB5b3UgbmVlZCB0byBtYWtlIHRoZSBjb252ZXJzaW9uLg0KDQpJIGFtIHdvcmtpbmcgd2l0aCAyIGZ1bmN0aW9ucyBmcm9tIHRoZSBgWE1MYCBwYWNrYWdlLiBUaGUgZmlyc3QsIGB4bWxQYXJzZURvY2AsIHBhcnNlcyB0aGUgWE1MIGRvY3VtZW50LiBXZSBjYW4gdXNlIHRoZSBhZGRpdGlvbmFsIG9wdGlvbnMgdG8gY3VzdG9taXplIHRoZSBwYXJzZXIgKEkgZGlkIG5vdCBuZWVkIHRoZXNlIGZvciB0aGlzIHBhcnQpLiBUaGUgYXJndW1lbnRzIGFyZSBhcyBmb2xsb3dzOg0KDQoqIGBmaWxlYDogbmFtZSBvZiB0aGUgZmlsZSwgVVJMLCBvciBYTUwgY29udGVudCBpdHNlbGYNCiogYG9wdGlvbnNgOiBhIGxpc3Qgb2YgZGlmZmVyZW50IHNwZWNpZmllZCBvcHRpb25zIHdoaWNoIGFyZSBlbnRlcmVkIGFzIGVsZW1lbnRzIG9mIGFuIGludGVnZXIgdmVjdG9yIHdoaWNoIGFyZSBiaXR3aXNlIE9SZWQgdG9nZXRoZXIuDQoqIGBlbmNvZGluZ2A6IHVzZWQgdG8gc3BlY2lmeSB0aGUgZW5jb2Rpbmcgb2YgdGhlIGRvY3VtZW50IGlmIG5vdCBleHBsaWNpdGx5IGNvbnRhaW5lZCBpbiB0aGUgZG9jdW1lbnQgaXRzZWxmLg0KKiBgYXNUZXh0YDogdXNlZCB0byBzcGVjaWZ5IGlmIHRoZSBmaWxlIGlzIHRoZSBYTUwgY29udGVudCBvciB0aGUgbmFtZSBvZiBhIGZpbGUvVVJMIChGQUxTRSkNCiogYGJhc2VVUkxgOiB1c2VkIHRvIHJlc29sdmUgcmVsYXRpdmUgZG9jdW1lbnRzIGlmIHRoZSBYTUwgZmlsZSBsaW5rcyB0byBvdGhlcnMuDQoNCmBgYHtyIGxpYnJhcmllcywgaW5jbHVkZT1GQUxTRX0NCmxpYnJhcnkoWE1MKQ0KbGlicmFyeSh0aWR5dmVyc2UpDQpgYGANCg0KYGBge3IgcGFyc2V9DQpkb2MgPC0geG1sUGFyc2VEb2MoIkRhdGEvaGl2LnhtbCIpDQpgYGANCg0KVGhlIG90aGVyIGZ1bmN0aW9uIHdoaWNoIEkgYW0gdXNpbmcgZnJvbSB0aGUgYFhNTGAgcGFja2FnZSBpcyBgeG1sVG9EYXRhRnJhbWVgLiBUaGlzIGZ1bmN0aW9uIGhhcyB0aGUgZm9sbG93aW5nIGFyZ3VtZW50czoNCg0KKiBgZG9jYDogc3BlY2lmaWVzIHRoZSBYTUwgY29udGVudC4gVGhpcyBjYW4gYmUgYSBwYXJzZWQgWE1MIG9yIGEgZmlsZSBsb2NhdGlvbi4gDQoqIGBjb2xDbGFzc2VzYDogbGlzdCBnaXZpbmcgdGhlIG5hbWVzIG9mIHRoZSBSIHR5cGVzIGZvciBjb3JyZXNwb25kaW5nIHZhcmlhYmxlcyBhbmQgdXNlZCB0byBjb2VyY2UgdGhlIGNvbHVtbiBpbiB0aGUgZGF0YWZyYW1lIHJlc3VsdCB0byB0aGlzIHR5cGUuDQoqIGBob21vZ2Vub3VzYDogYSBsb2dpY2FsIHZhbHVlIHRvIGxldCB0aGUgZnVuY3Rpb24ga25vdyBpZiB0aGUgbm9kZXMgY29udGFpbnMgYWxsIHRoZSB2YXJpYWJsZXMgb3IgaWYgdGhlcmUgYXJlIHNvbWUgbm9kZXMgd2hpY2ggb25seSBjb250YWluIGEgc3Vic2V0LiBUaGUgZnVuY3Rpb24gd2lsbCBpbnRlcnByZXQgdGhpcyBpZiBpdCBpc24ndCBzcGVjaWZpZWQuDQoqIGBjb2xsZWN0TmFtZXNgOiBEZXRlcm1pbmVzIGlmIG9uZSBzaG91bGQgdW5pb24gYWxsIHZhcmlhYmxlIG5hbWVzIG9yIGlmIHlvdSB1c2UgdGhlIG5hbWVzIGZyb20gdGhlIG5vZGUgd2l0aCB0aGUgZ3JlYXRlc3QgbnVtYmVyIG9mIGNoaWxkcmVuLg0KKiBgbm9kZXNgOiBBIGxpc3Qgb2YgWE1MIG5vZGVzIHRvIGJlIHByb2Nlc3NlZC4gVXNlZnVsIGluIHRoaXMgY2FzZSBzaW5jZSB3ZSBuZWVkIHRvIGdvIGRvd24gYSBjb3VwbGUgbGV2ZWxzIGJlZm9yZSB3ZSBnZXQgdG8gYSBzaW1wbGUgcmVjb3JkIGxpc3QgdG8gcmVhZCBpbnRvIGEgZGF0YWZyYW1lLg0KKiBgc3RyaW5nc0FzRmFjdG9yc2A6IHNob3VsZCBjaGFyYWN0ZXIgdmVjdG9ycyBiZSBjb252ZXJ0ZWQgdG8gZmFjdG9yIG9iamVjdHMgaW4gdGhlIHJlc3VsdGluZyBkYXRhZnJhbWU/DQoNCkZpbmFsbHksIEkgdXNlIHRoZSBgZ2V0Tm9kZVNldGAgZnVuY3Rpb24gdG8gc3BlY2lmeSB3aGljaCBub2RlcyBzaG91bGQgYmUgY29udmVydGVkIHRvIGEgZGF0YWZyYW1lLiBUaGlzIGZ1bmN0aW9uIGV4dHJhY3RzIHRoZSBkZXNpcmVkIG5vZGVzIGJlZm9yZSBwaXBpbmcgaXQgaW50byB0aGUgY29udmVyc2lvbi4gVGhlIHR3byBhcmd1bWVudHMgd2hpY2ggSSByZXF1aXJlZCB3ZXJlOg0KKiBgZG9jYDogYW4gb2JqZWN0IG9mIGNsYXNzIFhNTEludGVybmFsRG9jdW1lbnQuDQoqIGBwYXRoYDogYSBzdHJpbmcgZ2l2aW5nIHRoZSBYUGF0aCBleHByZXNzaW9uIHRvIGV2YWx1YXRlLiBIZXJlLCBJJ20gc2F5aW5nIG9wZW4gdGhlIHJlc3BvbnNlIG5vZGUsIG9wZW4gdGhlIHJvdyBub2RlLCB0aGVuIHNlbGVjdCBhbGwgY2hpbGQgbm9kZXMuDQoNCmBgYHtyIGNvbnZlcnR9DQpoaXYgPC0geG1sVG9EYXRhRnJhbWUoZG9jLCBub2Rlcz1nZXROb2RlU2V0KGRvYywgIi9yZXNwb25zZS9yb3cvKiIpLCBzdHJpbmdzQXNGYWN0b3JzID0gRkFMU0UpDQpgYGANCg0KDQojIE5ZQyBISVYgZGF0YXNldA0KDQpUaGlzIGRhdGFzZXQgcHJvdmlkZXMgZGF0YSBvbiBuZXcgZGlhZ25vc2VzIG9mIEhJViBhbmQgQUlEUyBpbiBOWUMgZm9yIDIwMTAtMjAxMy4gUmVwb3J0ZWQgY2FzZXMgYW5kIGNhc2UgcmF0ZXMgYXJlIHN0cmF0aWZpZWQgYnkgYWdlIGdyb3VwLCBldGhuaWNpdHksIGFuZCBuZWlnaGJvcmhvb2QgKGFzIGRlZmluZWQgYnkgdGhlIFVuaXRlZCBIb3NwaXRhbCBGdW5kKS4gVGhlc2UgbnVtYmVycyBhcmUgcmVwb3J0ZWQgdG8gdGhlIE5ZQyBEZXBhcnRtZW50IG9mIEhlYWx0aCBhbmQgTWVudGFsIEh5Z2llbmUgYnkgaGVhbHRoY2FyZSBwcm92aWRlcnMgYW5kIGxhYm9yYXRvcmllcyAod2hvIGFyZSByZXF1aXJlZCB0byByZXBvcnQgYWxsIG5ldyBpbmZlY3Rpb25zKS4gVGhlIGRlbm9taW5hdG9yIGZvciB0aGUgcG9wdWxhdGlvbiBncm91cHMgaXMgZGVmaW5lZCBieSB0aGUgcG9wdWxhdGlvbiBlc3RpbWF0ZXMgdXNlZCBieSB0aGUgTllDIERPSE1ILCB3aGljaCBhcmUgYnVpbHQgdXBvbiBVUyBDZW5zdXMgQnVyZWF1IGludGVyY2Vuc2FsIHBvcHVsYXRpb24gZXN0aW1hdGVzIDIwMDYtMjAwOC4gQ2hhcmFjdGVyaXN0aWNzIG9mIHRoZSBpbmRpdmlkdWFscyBiZWluZyBkaWFnbm9zZWQgYXJlIGFzIHByb3ZpZGVkIGJ5IHRoZSBtZWRpY2FsIHJlY29yZHMgb2YgdGhlIHBhdGllbnQuIEFueSBjYXNlIGNvdW50IGxlc3MgdGhhbiA1IG9yIGRlbm9taW5hdG9yIGdyb3VwIGxlc3MgdGhhbiA1MDAgb3Igbm9uemVybyBjb3VudHMgd2l0aCBhIGRlbm9taW5hdG9yIGxlc3MgdGhhbiAxMDAgYXJlIGV4Y2x1ZGVkIHRvIHByb3RlY3QgcGF0aWVudCBjb25maWRlbnRpYWxpdHkuIA0KDQojIyBJbnB1dCBhbmQgQ2xlYW5pbmcNCg0KYGBge3IgY2xlYW5BbmRDb21wdXRlfQ0KIyBTaW1wbGUgZGF0YSBjbGVhbmluZyBmdW5jdGlvbiB0byBhdXRvbWF0aWNhbGx5IGZpZ3VyZSBvdXQgd2hpY2ggZmllbGRzIG5lZWQgcmVwbGFjaW5nIG9mIHRoZSAqIHZhbHVlIGFuZCBjYWxjIHBvcCBlc3RpbWF0ZQ0KY2xlYW5EYXRhPC0gZnVuY3Rpb24oZGYpIHsNCiAgIyBSZXBsYWNlICogd2l0aCBOQSBmb3IgZnV0dXJlIGFuYWx5c2lzDQogIGZsYWdDb2xMaXN0PC1ncmVwKCJudW0iLCBuYW1lcyhkZiksIHZhbHVlPVRSVUUpDQogIGZvciAoZmxhZ0NvbCBpbiBmbGFnQ29sTGlzdCkgew0KICAgIGRmW1tmbGFnQ29sXV1bZGZbW2ZsYWdDb2xdXSA9PSAnKiddPC0gTmFODQogICAgZGZbW2ZsYWdDb2xdXVtkZltbZmxhZ0NvbF1dID09ICdOQSddPC0gTmFODQogICAgZGZbW2ZsYWdDb2xdXVtpcy5uYShkZltbZmxhZ0NvbF1dKV08LSBOYU4NCiAgICBkZltbZmxhZ0NvbF1dIDwtIGFzLm51bWVyaWMoZGZbW2ZsYWdDb2xdXSkNCiAgfQ0KICANCiAgcmV0dXJuKGRmKQ0KfQ0KDQojIEEgZnVuY3Rpb24gdG8gYWlkIGluIHRoZSBsYXRlciBtdXRhdGUgZnVuY3Rpb24gd2hpY2ggY2FsY3VsYXRlcyBhbiBlc3RpbWF0ZWQgcG9wdWxhdGlvbiBzaXplIHdoZW4gcG9zc2libGUgdG8gZG8gc28NCmVzdGltYXRvcjwtIGZ1bmN0aW9uKGhpdm4sIGhpdnBlcjEwMCkgew0KICBpZiAoKCFpcy5uYShoaXZwZXIxMDApICYgISBpcy5uYShoaXZuKSkgJiAoKGhpdnBlcjEwMCA+IDApICYgKGhpdm4gPiAwKSkpIHsNCiAgICB0b3RhbCA8LSBoaXZuLyAoaGl2cGVyMTAwIC8gMTAwMDAwKQ0KICB9IGVsc2Ugew0KICAgIHRvdGFsIDwtIE5hTg0KICB9DQogIHJldHVybih0b3RhbCkNCn0NCg0KaGl2PC0gY2xlYW5EYXRhKGhpdikgJT4lIHJvd3dpc2UoKSAlPiUgbXV0YXRlKGVzdGltYXRlZF9wb3B1bGF0aW9uID0gZXN0aW1hdG9yKGhpdm49aGl2X2RpYWdub3Nlc19udW0sIGhpdnBlcjEwMD1oaXZfZGlhZ25vc2VzX251bV9wZXJfMTAwaykpDQoNCmhlYWQoaGl2KQ0KYGBgDQoNCg0KQ29sdW1ucyBhcmUgYXMgZm9sbG93czoNCg0KKiBZZWFyOiBDYWxlbmRhciB5ZWFyIG9mIHRoZSByZXBvcnQNCiogTmVpZ2hib3Job29kIChVSEYpOiBUaGUgVW5pdGVkIEhvc3BpdGFsIEZ1bmQgbmVpZ2hib3Job29kIG9mIHJlc2lkZW5jZQ0KKiBTZXg6IFRoZSBzZXggb2YgdGhlIHBhdGllbnRzDQoqIFJhY2U6IFRoZSByYWNlIG9mIHRoZSBwYXRpZW50cw0KKiBoaXZfZGlhZ25vc2VzX251bTogVGhlIG51bWJlciBvZiByZXBvcnRlZCBISVYgZGlhZ25vc2VzIGZvciB0aGUgc3BlY2lmaWVkIHllYXINCiogaGl2X2RpYWdub3Nlc19udW1fcGVyXzEwMGs6IFRoZSBudW1iZXIgb2YgQUlEUyBkaWFnbm9zZXMgZm9yIHRoZSByZXNwZWN0aXZlIHllYXIgcGVyIDEwMCwwMDAgcGVvcGxlDQoqIGhpdl9haWRzX2NvbmN1cnJlbnRfbnVtOiB0aGUgbnVtYmVyIG9mIGRpYWdub3NlZCBISVYgY2FzZXMgd2l0aCBhIGNvbmN1cnJlbnQgQUlEUyBkaWFnbm9zaXMgZm9yIHRoZSBnaXZlbiB5ZWFyDQoqIGNvbmN1cnJlbnRfaGl2X2FpZHNfYW1vbmdfYWxsOiBwcm9wb3J0aW9uIG9mIGNvbmN1cnJlbnQgSElWL0FJRFMgZGlhZ25vc2lzIGNvbXBhcmVkIHRvIGFsbCBISVYgZGlhZ25vc2VzIGZvciB0aGUgeWVhcg0KKiBhaWRzX2RpYWdub3Nlc19udW06IG51bWJlciBvZiByZXBvcnRlZCBjYXNlcyBvZiBBSURTIGZvciB0aGUgeWVhcg0KKiBhaWRzX2RpYWdub3Nlc19udW1fcGVyXzEwMGs6IG51bWJlciBvZiBBSURTIGNhc2VzIHBlciAxMDAsMDAwIHBlb3BsZS4NCiogZXN0aW1hdGVkX3BvcHVsYXRpb246IEEgY2FsY3VsYXRlZCBmaWVsZCwgd2hpY2ggZXN0aW1hdGVzIHRoZSBwb3B1bGF0aW9uIHVzaW5nIHRoZSBwcm92aWRlZCBwcm9wb3J0aW9uIGFuZCBudW1iZXIgb2YgZGlhZ25vc2VzLg0KDQojIyBFREENCg0KDQo=</div>
 
 
 

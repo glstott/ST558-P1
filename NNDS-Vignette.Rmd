@@ -2,7 +2,10 @@
 title: "NNDS - Infrequently Reported Notifiable Diseases"
 author: "Garrick L. Stott"
 date: "October 17, 2019"
-output: html_notebook
+output: 
+  html_document:
+    toc: True
+    df_print: paged
 ---
 
 This vignette will cover the JSONLite R package and the dataset used as an exemplar, NNDSS – Table I. Infrequently Reported Notifiable Diseases. 
@@ -30,12 +33,13 @@ We chose to use jsonlite for this project. There are a couple of other major JSO
 
 The function we are using is fromJSON. The function takes in a JSON string, URL, or file in the txt argument, and offers several additional arguments to define how the JSON file is read in. `simplifyVector` coerces JSON arrays (that only contain simple things like numbers, strings, Booleans, or null values) into vectors, `simplifyDataFrame` coerces JSON arrays with only records into data frames, `simplifyMatrix` coerces JSON arrays containing vectors with equal mode and dimension into a matrix, and `flatten` automatically flattens nested data frames into a single non-nested dataframe. The `flatten` argument is shorthand for performing the flatten function after loading in the JSON data.
 
-```{r libraries, echo=FALSE}
+```{r libraries, include=FALSE}
 library(jsonlite)
 library(tidyverse)
+library(reshape2)
 ```
 
-```{r}
+```{r readData}
 nnds<- fromJSON(txt="Data/NNDS-Table1.json", flatten = TRUE) 
 
 df<- as.data.frame(nnds$data, stringsAsFactors = FALSE)
@@ -50,10 +54,11 @@ This dataset, obtained from [HealthData.gov](https://healthdata.gov/dataset/nnds
 
 This data is collected by state health departments, voluntarily, for the CDC. The data is updated each week (including for previous weeks within a 6 month period). The data we are using is finalized. Notifiable disease reporting is incomplete. The completeness varies depending on the disease and the reporting state or territory. It is influenced by the recognition of a disease, i.e. it may be influenced by the availability of diagnostic facilities; control measures in effect; public awareness of a specific disease (e.g. Zika virus in 2018); and the interests, resources, and priorities of state and local health officials responsible for disease control and surveillance. Furthermore, as various diseases are given more attention and/or study, diagnostic procedures and naming conventions for these diseases have changed. For example, prior to 2015, NNDSS did not receive data about incidence of specific viral hemorrhagic fevers, but in aggregate as “viral hemorrhagic fevers”. In 2015, this was separated out as Ebola and Lassa fever as the West African outbreak of Ebola developed and became of concern. 
 
+## Cleaning
 
-```{r}
+```{r cleanData}
 # A function to clean up read errors in the data. 
-cleandata<- function(df) {
+cleandata<- function(df, badCols) {
   
   # We start by cleaning up the flag values, which are loaded in only for the negative case.
   flagColList<-grep("flag", names(df), value=TRUE)
@@ -63,18 +68,21 @@ cleandata<- function(df) {
   }
   
   # Remove all columns which contain metadata or duplicate data in general
-  badCols<- c('sid', 'id', 'position', 'created_at', 'created_meta', 'updated_at', 'updated_meta', 'meta')
-  df<- df[, !names(df) %in% badCols]
+  if (length(badCols) >=1) {
+    df<- df[, !names(df) %in% badCols]
+  }
   
   return(df)
 }
 
-df<-cleanFlags(df)
+badls<- c('sid', 'id', 'position', 'created_at', 'created_meta', 'updated_at', 'updated_meta', 'meta')
+df<-cleandata(df, badCols=badls)
 head(df)
 ```
 
 Above we have the NNDSS dataset. Our columns are as follows: 
 * Disease: The disease being tracked. Note that some diseases fall into a group classification, but each variant is listed separately.
+
 * MMWR year: The year of the results.
 * MMWR week: The week in the year for the results.
 * Current week: The number of incidences in the current week.
@@ -97,11 +105,23 @@ Above we have the NNDSS dataset. Our columns are as follows:
 
 Note that we have an additional numeric column and categorical hidden within the last column. We'll now create a new `state` dataframe to collect this more granular view of the data.
 
-```{r}
+```{r stateview}
+# Finding State-wise data
 state<- df %>% separate_rows(`States reporting cases during current week (No.) `, sep=', ')
 goodCols<- c("Disease", "MMWR year", "MMWR week", "Current week", "Current week, flag", 
              "States reporting cases during current week (No.) ")
 state<- state[, names(state) %in% goodCols]
 
+# Split out the useful information using gsub pattern replacement
+state<-cbind(state[, names(state) != 'States reporting cases during current week (No.) '], 
+             colsplit(string = gsub(pattern = "\\(|\\)",replacement = "",
+                            x = state$`States reporting cases during current week (No.) `), 
+                  pattern = " ",names = c("State","Number of Cases")))
+```
+
+## EDA
+
+```{r ContingencyTables}
+state %>% select(Disease, State, `Number of Cases`) %>% filter(!is.na(`Number of Cases`)) %>% group_by(Disease, State) %>% summarize(Total=sum(`Number of Cases`)) %>% spread(Disease, Total) %>% kable()
 ```
 
